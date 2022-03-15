@@ -82,6 +82,8 @@ static int trace_connect_return(struct pt_regs *ctx, short ipver)
     struct sock *skp = *skpp;
     u16 dport = skp->__sk_common.skc_dport;
 
+    FILTER_PORT
+
     if (ipver == 4) {
        struct ipv4_data_t data4 = {.pid = pid, .ip = ipver};
         data4.uid = bpf_get_current_uid_gid();
