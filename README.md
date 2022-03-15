@@ -1,7 +1,16 @@
 # sysperf - eBPF based metric-collector/analyzer 
 
+## Supports:
+
+- [x] Networking: IPv4 and IPv6 tcp connections
+- [ ] CPU Usage
+- [ ] Memory usage 
+
 
 ## How to build: 
+
+This is an [Arch Linux](https://archlinux.org/) based Docker image, in which we install the [BPF Compiler Collection (BCC)](https://github.com/iovisor/bcc) 
+and the necessary kernel headers.
 
 ```shell
 docker build -t nathanmartins/sysperf . 
