@@ -2,12 +2,14 @@
 
 from __future__ import print_function
 
+import json
 from socket import inet_ntop, AF_INET, AF_INET6
 from socket import ntohs
 from struct import pack
 
 from bcc import BPF
-from bcc.utils import printb
+
+pretty_print = False
 
 # load BPF program source code
 bpf_text = open("ebpf.c").read()
@@ -30,11 +32,20 @@ def print_ipv4_event(cpu, data, size):
     global start_ts
     if start_ts == 0:
         start_ts = event.ts_us
-    printb(b"%-9.3f" % ((float(event.ts_us) - start_ts) / 1000000), nl="")
-    printb(b"%-6d %-12.12s %-2d %-16s %-16s %-4d" % (event.pid,
-                                                     event.task, event.ip,
-                                                     inet_ntop(AF_INET, pack("I", event.saddr)).encode(),
-                                                     inet_ntop(AF_INET, pack("I", event.daddr)).encode(), event.dport))
+
+    parsed = {
+        "took": (float(event.ts_us) - start_ts) / 1000000,
+        "pid": event.pid,
+        "ip version":  event.ip,
+        "origin": inet_ntop(AF_INET, pack("I", event.saddr)),
+        "destination": inet_ntop(AF_INET, pack("I", event.daddr)),
+        "port": event.dport,
+    }
+
+    if pretty_print:
+        print(json.dumps(parsed, indent=4, sort_keys=True))
+    else:
+        print(json.dumps(parsed))
 
 
 def print_ipv6_event(cpu, data, size):
@@ -42,18 +53,24 @@ def print_ipv6_event(cpu, data, size):
     global start_ts
     if start_ts == 0:
         start_ts = event.ts_us
-    printb(b"%-9.3f" % ((float(event.ts_us) - start_ts) / 1000000), nl="")
-    printb(b"%-6d %-12.12s %-2d %-16s %-16s %-4d" % (event.pid,
-                                                     event.task, event.ip,
-                                                     inet_ntop(AF_INET6, event.saddr).encode(),
-                                                     inet_ntop(AF_INET6, event.daddr).encode(),
-                                                     event.dport))
+    parsed = {
+        "took": (float(event.ts_us) - start_ts) / 1000000,
+        "pid": event.pid,
+        "ip version":  event.ip,
+        "origin": inet_ntop(AF_INET6, pack("I", event.saddr)),
+        "destination": inet_ntop(AF_INET6, pack("I", event.daddr)),
+        "port": event.dport,
+    }
+    if pretty_print:
+        print(json.dumps(parsed, indent=4, sort_keys=True))
+    else:
+        print(json.dumps(parsed))
 
 
-print("Tracing connect ... Hit Ctrl-C to end")
-print("%-9s" % ("TIME(s)"), end="")
-print("%-6s %-12s %-2s %-16s %-16s %-4s" % ("PID", "COMM", "IP", "SADDR",
-                                            "DADDR", "DPORT"))
+if pretty_print:
+    print(json.dumps({"message": "tracing tcp connections"}, indent=4, sort_keys=True))
+else:
+    print(json.dumps({"message": "tracing tcp connections"}))
 
 start_ts = 0
 
