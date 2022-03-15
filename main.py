@@ -12,7 +12,7 @@ from bcc import BPF
 pretty_print = False
 
 # load BPF program source code
-bpf_text = open("ebpf.c").read()
+bpf_text = open("/usr/sbin/ebpf.c").read()
 
 # replace ports to be traced...
 traced_port = [80, 443]

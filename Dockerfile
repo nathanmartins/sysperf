@@ -22,9 +22,12 @@ RUN python3 -m ensurepip
 RUN pip3 install --no-cache --upgrade pip setuptools
 
 WORKDIR /usr/sbin/
-COPY . .
 
+# Cache long step
+COPY fetch-linux-headers.sh .
 RUN fetch-linux-headers.sh
+
+COPY . .
 RUN apk add --update bcc-tools bcc-doc
 
 WORKDIR /
