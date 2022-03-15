@@ -9,7 +9,7 @@
 
 ## How to build: 
 
-This is an [Arch Linux](https://archlinux.org/) based Docker image, in which we install the [BPF Compiler Collection (BCC)](https://github.com/iovisor/bcc) 
+This is an [Alpine Linux](https://alpinelinux.org/) based Docker image, in which we install the [BPF Compiler Collection (BCC)](https://github.com/iovisor/bcc) 
 and the necessary kernel headers.
 
 ```shell

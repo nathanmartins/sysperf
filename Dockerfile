@@ -1,13 +1,30 @@
-FROM archlinux:base-devel-20220313.0.50300
+FROM alpine:3.15
+RUN apk add --update \
+    bash \
+    bc \
+    build-base \
+    bison \
+    flex \
+    curl \
+    elfutils-dev \
+    linux-headers \
+    make \
+    wget \
+    openssl-dev \
+    tar \
+    gzip \
+    python3
 
-RUN sudo pacman -Syy --noconfirm bcc bcc-tools python-bcc bc wget
+# Setting up some python things
+ENV PYTHONUNBUFFERED=1
+RUN  ln -sf python3 /usr/bin/python
+RUN python3 -m ensurepip
+RUN pip3 install --no-cache --upgrade pip setuptools
 
 WORKDIR /usr/sbin/
-
-COPY fetch-linux-headers.sh .
-
-RUN fetch-linux-headers.sh
 COPY . .
 
-WORKDIR /
+RUN fetch-linux-headers.sh
+RUN apk add --update bcc-tools bcc-doc
 
+WORKDIR /

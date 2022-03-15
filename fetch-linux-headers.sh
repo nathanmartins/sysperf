@@ -30,8 +30,7 @@ fetch_cos_linux_sources()
 {
   echo "Fetching upstream kernel sources."
   mkdir -p "${BUILD_DIR}"
-  curl -s "https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-src.tar.gz" \
-    | tar -xzf - -C "${BUILD_DIR}"
+  wget -O - "https://storage.googleapis.com/cos-tools/${BUILD_ID}/kernel-src.tar.gz" | tar -xzf - -C "${BUILD_DIR}"
 }
 
 fetch_generic_linux_sources()
@@ -49,8 +48,7 @@ fetch_generic_linux_sources()
 
   echo "Fetching upstream kernel sources for ${kernel_version}."
   mkdir -p "${BUILD_DIR}"
-  curl -sL "https://www.kernel.org/pub/linux/kernel/v${major_version}.x/linux-$kernel_version.tar.gz" \
-    | tar --strip-components=1 -xzf - -C "${BUILD_DIR}"
+  wget -O - "https://www.kernel.org/pub/linux/kernel/v${major_version}.x/linux-$kernel_version.tar.gz" | tar --strip-components=1 -xzf - -C "${BUILD_DIR}"
 }
 
 install_cos_linux_headers()
@@ -59,6 +57,10 @@ install_cos_linux_headers()
     BUILD_ID=$(awk '/CHROMEOS_RELEASE_VERSION *= */ { gsub(/^CHROMEOS_RELEASE_VERSION *= */, ""); print }' "${LSB_FILE}")
     BUILD_DIR="/linux-lakitu-${BUILD_ID}"
     SOURCES_DIR="${TARGET_DIR}/linux-lakitu-${BUILD_ID}"
+
+    if [[ ! -e "$SOURCES_DIR" ]]; then
+      mkdir -p "$SOURCES_DIR"
+    fi
 
     if [[ ! -e "${SOURCES_DIR}/.installed" ]]; then
       echo "Installing kernel headers for COS build ${BUILD_ID}"
@@ -75,6 +77,10 @@ install_generic_linux_headers()
 {
   BUILD_DIR="/linux-generic-${KERNEL_VERSION}"
   SOURCES_DIR="${TARGET_DIR}/linux-generic-${KERNEL_VERSION}"
+
+    if [[ ! -e "$SOURCES_DIR" ]]; then
+      mkdir -p "$SOURCES_DIR"
+    fi
 
   if [[ ! -e "${SOURCES_DIR}/.installed" ]];then
     echo "Installing kernel headers for generic kernel"
