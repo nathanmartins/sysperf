@@ -49,10 +49,8 @@ int trace_connect_entry(struct pt_regs *ctx, struct sock *sk)
     u64 pid_tgid = bpf_get_current_pid_tgid();
     u32 pid = pid_tgid >> 32;
     u32 tid = pid_tgid;
-    FILTER_PID
 
     u32 uid = bpf_get_current_uid_gid();
-    FILTER_UID
 
     // stash the sock ptr for lookup on return
     currsock.update(&tid, &sk);
@@ -84,12 +82,26 @@ static int trace_connect_return(struct pt_regs *ctx, short ipver)
     struct sock *skp = *skpp;
     u16 dport = skp->__sk_common.skc_dport;
 
-    FILTER_PORT
-
     if (ipver == 4) {
-        IPV4_CODE
+       struct ipv4_data_t data4 = {.pid = pid, .ip = ipver};
+        data4.uid = bpf_get_current_uid_gid();
+        data4.ts_us = bpf_ktime_get_ns() / 1000;
+        data4.saddr = skp->__sk_common.skc_rcv_saddr;
+        data4.daddr = skp->__sk_common.skc_daddr;
+        data4.dport = ntohs(dport);
+        bpf_get_current_comm(&data4.task, sizeof(data4.task));
+        ipv4_events.perf_submit(ctx, &data4, sizeof(data4));
     } else /* 6 */ {
-        IPV6_CODE
+       struct ipv6_data_t data6 = {.pid = pid, .ip = ipver};
+        data6.uid = bpf_get_current_uid_gid();
+        data6.ts_us = bpf_ktime_get_ns() / 1000;
+        bpf_probe_read(&data6.saddr, sizeof(data6.saddr),
+            skp->__sk_common.skc_v6_rcv_saddr.in6_u.u6_addr32);
+        bpf_probe_read(&data6.daddr, sizeof(data6.daddr),
+            skp->__sk_common.skc_v6_daddr.in6_u.u6_addr32);
+        data6.dport = ntohs(dport);
+        bpf_get_current_comm(&data6.task, sizeof(data6.task));
+        ipv6_events.perf_submit(ctx, &data6, sizeof(data6));
     }
 
     currsock.delete(&tid);
