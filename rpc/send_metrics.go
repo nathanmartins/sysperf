@@ -1,4 +1,4 @@
-package main
+package rpc
 
 import (
 	"log"
@@ -14,11 +14,6 @@ type Args struct {
 
 type Reply struct {
 	FinalMessage string
-}
-
-func main() {
-	a := &Rpc{}
-	a.SendMetric("Hello RPC World")
 }
 
 func (r *Rpc) SendMetric(message string) {
