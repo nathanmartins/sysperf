@@ -22,3 +22,21 @@ go install github.com/cilium/ebpf/cmd/bpf2go@latest
 
 Once all dependencies are installed, run `make`. 
 You can test the output binary on any of the Vagrant machines by running `sudo ./sysperf` in the `/vagrant` directory.
+
+
+## Docker
+
+## How to build:
+
+This is an [Alpine Linux](https://alpinelinux.org/) based Docker image.
+
+```shell
+docker build -t nathanmartins/sysperf . 
+```
+
+## How to run:
+
+In the main shell
+```shell
+docker run --rm --name sysperf --privileged -it nathanmartins/sysperf main.py
+```
