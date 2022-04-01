@@ -38,5 +38,5 @@ docker build -t nathanmartins/sysperf .
 
 In the main shell
 ```shell
-docker run --rm --name sysperf --privileged -it nathanmartins/sysperf main.py
+docker run --rm --name sysperf --privileged -it nathanmartins/sysperf
 ```
