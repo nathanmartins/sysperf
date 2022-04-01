@@ -1,6 +1,8 @@
 // +build ignore
 
-#include "common.h"
+#include "vmlinux.h"
+#include "bpf_helpers.h"
+#include "bpf_endian.h"
 
 char __license[] SEC("license") = "Dual MIT/GPL";
 
