@@ -2,7 +2,7 @@
 
 FROM golang:1.16-alpine
 
-RUN apk add --no-cache clang make
+RUN apk add --no-cache clang make llvm
 RUN go install github.com/cilium/ebpf/cmd/bpf2go@latest
 
 WORKDIR /app

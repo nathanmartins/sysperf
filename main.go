@@ -25,7 +25,7 @@ func main() {
 
 	errors := make(chan error, 1)
 	go func() {
-		errors <- custom_ebpf.RunCGroup(ctx)
+		errors <- custom_ebpf.RunKprobe(ctx)
 	}()
 
 	<-stop

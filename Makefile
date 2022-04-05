@@ -9,7 +9,7 @@ GOLDFLAGS := -s -w
 custom_ebpf/bpf_bpfel.go: export BPF_STRIP := $(STRIP)
 custom_ebpf/bpf_bpfel.go: export BPF_CLANG := $(CLANG)
 custom_ebpf/bpf_bpfel.go: export BPF_CFLAGS := $(CFLAGS)
-custom_ebpf/bpf_bpfel.go: custom_ebpf/cgroup_skb.c
+custom_ebpf/bpf_bpfel.go: custom_ebpf/kprobe_percpu.c
 	go generate ./...
 
 .PHONY: generate
