@@ -1,44 +1,46 @@
 package metric
 
 import (
+	"bytes"
+	"encoding/json"
+	"io/ioutil"
 	"log"
-	"net/rpc"
+	"net/http"
 )
 
-type Event struct {
-	Data interface{}
-	Name string
-}
-
-type Reply struct {
-	FinalMessage string
-}
-
-var client *rpc.Client
-
-func getClient() (*rpc.Client, error) {
-	if client == nil {
-		c, err := rpc.DialHTTPPath("tcp", "127.0.0.1:8080", "/rpc")
-		if err != nil {
-			log.Println("error dialing:", err)
-			return c, err
-		}
-		client = c
-	}
-
-	return client, nil
-}
-
-func SendMetric(payload interface{}, metricName string) error {
-	c, err := getClient()
+func SendMetric(event interface{}, eventName string) error {
+	log.Printf("event received: %+v\n", event)
+	body, err := json.Marshal(event)
 	if err != nil {
+		log.Println("error marshaling event:", err)
 		return err
 	}
-	e := Event{Data: payload, Name: metricName}
-	repl := new(Reply)
 
-	replyCall := c.Call("Rpc.SendMetric", e, repl)
-	log.Printf("%+v", replyCall)
-	log.Printf("%+v", repl)
+	payload := bytes.NewBuffer(body)
+	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/metric", payload)
+	if err != nil {
+		log.Println("new request error:", err)
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Event-Name", eventName)
+
+	c := &http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		log.Println("sysperf api request error:", err)
+		return err
+	}
+	defer res.Body.Close()
+
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println("sysperf api body read error:", err)
+		return err
+	}
+
+	log.Printf("event succesfully saved: %s\n", string(response))
+
 	return nil
 }
