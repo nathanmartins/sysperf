@@ -1,11 +1,9 @@
-package rpc
+package metric
 
 import (
 	"log"
 	"net/rpc"
 )
-
-type Rpc struct{}
 
 type Event struct {
 	Data interface{}
@@ -31,7 +29,7 @@ func getClient() (*rpc.Client, error) {
 	return client, nil
 }
 
-func (r *Rpc) SendMetric(payload interface{}, metricName string) error {
+func SendMetric(payload interface{}, metricName string) error {
 	c, err := getClient()
 	if err != nil {
 		return err
