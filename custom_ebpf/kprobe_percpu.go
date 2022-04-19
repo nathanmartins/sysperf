@@ -7,8 +7,8 @@ package custom_ebpf
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"github.com/nathanmartins/sysperf/metric"
 	"log"
 	"time"
 
@@ -67,21 +67,16 @@ func RunKprobe(ctx context.Context) error {
 				return fmt.Errorf("reading map: %v", err)
 			}
 			for cpuId, cpuValue := range allCpuValue {
-				//log.Printf("%s called %d times on CPU%v\n", fn, cpuValue, cpuId)
+				err = metric.SendMetric(
+					CPUInfo{
+						FunctionName: fn,
+						Times:        int(cpuValue),
+						Id:           cpuId,
+					}, "cpu_calls")
 
-				i := CPUInfo{
-					FunctionName: fn,
-					Times:        int(cpuValue),
-					Id:           cpuId,
-				}
-
-				var output []byte
-				output, err = json.Marshal(i)
 				if err != nil {
-					return err
+					log.Fatal(err)
 				}
-
-				fmt.Println(string(output))
 			}
 		case <-ctx.Done():
 			return nil

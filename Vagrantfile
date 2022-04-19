@@ -4,6 +4,7 @@
 
 Vagrant.configure("2") do |config|
   config.vm.box = "ubuntu/impish64"
+  config.vm.network "private_network", type: "dhcp"
   config.vm.provision "shell", inline: <<-SHELL
     apt-get update
     apt-get install -y bpfcc-tools  linux-headers-$(uname -r) clang build-essential libbpf-dev libbpf0  linux-tools-common linux-tools-generic golang

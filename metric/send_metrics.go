@@ -6,18 +6,24 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 )
 
 func SendMetric(event interface{}, eventName string) error {
-	log.Printf("event received: %+v\n", event)
 	body, err := json.Marshal(event)
 	if err != nil {
 		log.Println("error marshaling event:", err)
 		return err
 	}
 
+	sysPerfUrl, found := os.LookupEnv("SERVER_URL")
+
+	if !found {
+		sysPerfUrl = "http://localhost:8080/metric"
+	}
+
 	payload := bytes.NewBuffer(body)
-	req, err := http.NewRequest(http.MethodPost, "http://localhost:8080/metric", payload)
+	req, err := http.NewRequest(http.MethodPost, sysPerfUrl, payload)
 	if err != nil {
 		log.Println("new request error:", err)
 		return err
