@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os/exec"
 	"time"
 )
 
@@ -40,6 +41,30 @@ type PerfFile struct {
 }
 
 func main() {
+
+	fmt.Println("running perf")
+
+	_, err := exec.Command("perf", "record", "-F", "99", "-a", "-g", "--", "sleep", "5").Output()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("done running perf")
+
+	//fmt.Println(out)
+
+	fmt.Println("converting")
+	out, err := exec.Command("perf", "data", "convert", "--to-json", "perf.json").Output()
+
+	if err != nil {
+		log.Fatal(out)
+	}
+
+	fmt.Println("done converting")
+
+	//fmt.Println(out)
+
 	var perfFile PerfFile
 
 	content, err := ioutil.ReadFile("perf.json")
