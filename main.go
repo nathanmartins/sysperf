@@ -44,26 +44,22 @@ func main() {
 
 	fmt.Println("running perf")
 
-	_, err := exec.Command("perf", "record", "-F", "99", "-a", "-g", "--", "sleep", "5").Output()
+	err := exec.Command("perf", "record", "-F", "99", "-a", "-g", "--", "sleep", "5").Run()
+
+	if err != nil {
+		log.Fatal("failed to run")
+	}
+
+	fmt.Println("done running perf")
+
+	fmt.Println("converting")
+	err = exec.Command("perf", "data", "convert", "--to-json", "perf.json").Run()
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("done running perf")
-
-	//fmt.Println(out)
-
-	fmt.Println("converting")
-	out, err := exec.Command("perf", "data", "convert", "--to-json", "perf.json").Output()
-
-	if err != nil {
-		log.Fatal(out)
-	}
-
 	fmt.Println("done converting")
-
-	//fmt.Println(out)
 
 	var perfFile PerfFile
 
