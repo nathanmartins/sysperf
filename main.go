@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -42,35 +43,68 @@ type PerfFile struct {
 
 func main() {
 
-	fmt.Println("running perf")
+	CleanUp()
+
+	ticker := time.NewTicker(2 * time.Second)
+	quit := make(chan struct{})
+
+	for {
+		select {
+		case <-ticker.C:
+			err := RunPerf()
+			if err != nil {
+				CleanUp()
+				log.Fatal(err)
+			}
+
+			err = ProcessPerf()
+			if err != nil {
+				CleanUp()
+				log.Fatal(err)
+			}
+		case <-quit:
+			CleanUp()
+			ticker.Stop()
+			return
+		}
+	}
+
+}
+
+func RunPerf() error {
+	log.Println("running perf")
 
 	err := exec.Command("perf", "record", "-F", "99", "-a", "-g", "--", "sleep", "5").Run()
 
 	if err != nil {
-		log.Fatal("failed to run")
+		return fmt.Errorf("failed to run")
 	}
 
-	fmt.Println("done running perf")
+	log.Println("done running perf")
 
-	fmt.Println("converting")
+	log.Println("converting")
 	err = exec.Command("perf", "data", "convert", "--to-json", "perf.json").Run()
 
 	if err != nil {
-		log.Fatal(err)
+		return fmt.Errorf("failed to convert: %s", err)
 	}
 
-	fmt.Println("done converting")
+	log.Println("done converting")
 
+	return nil
+}
+
+func ProcessPerf() error {
 	var perfFile PerfFile
 
 	content, err := ioutil.ReadFile("perf.json")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	err = json.Unmarshal(content, &perfFile)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	commandMapping := make(map[int]string)
@@ -82,6 +116,20 @@ func main() {
 		}
 	}
 
+	CleanUp()
 	fmt.Println(commandMapping)
 
+	return nil
+}
+
+func CleanUp() {
+	p := []string{
+		"perf.json",
+		"perf.data",
+		"perf.data.old",
+	}
+
+	for _, pp := range p {
+		_ = os.Remove(pp)
+	}
 }
