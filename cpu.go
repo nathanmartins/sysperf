@@ -65,11 +65,13 @@ func SampleCPUSaturation(interval time.Duration) error {
 	return nil
 }
 
-func SampleCPULatency() error {
+func SampleCPULatency(interval time.Duration) error {
 
 	_ = FileCleanUp("cpu-lat*")
 
-	command := []string{"sched", "record", "-o", "cpu-lat.data", "--", "sleep", "1"}
+	duration := fmt.Sprintf("%d", interval)
+
+	command := []string{"sched", "record", "-o", "cpu-lat.data", "--", "sleep", duration}
 	err := exec.Command("perf", command...).Run()
 
 	if err != nil {

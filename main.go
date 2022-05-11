@@ -38,7 +38,7 @@ func main() {
 		}()
 
 		go func() {
-			err := SampleCPULatency()
+			err := SampleCPULatency(1)
 			if err != nil {
 				cleanup()
 				log.Fatal(err)
