@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -34,14 +35,30 @@ func getCPUSample() (idle, total uint64) {
 	return
 }
 
-func example() {
+type CPUSaturation struct {
+	Usage float64 `json:"usage"`
+	Busy  float64 `json:"busy"`
+	Total float64 `json:"total"`
+}
+
+func SampleCPUSaturation(interval time.Duration) error {
 	idle0, total0 := getCPUSample()
-	time.Sleep(3 * time.Second)
+	time.Sleep(interval)
 	idle1, total1 := getCPUSample()
 
 	idleTicks := float64(idle1 - idle0)
 	totalTicks := float64(total1 - total0)
-	cpuUsage := 100 * (totalTicks - idleTicks) / totalTicks
 
-	fmt.Printf("CPU usage is %f%% [busy: %f, total: %f]\n", cpuUsage, totalTicks-idleTicks, totalTicks)
+	sample := CPUSaturation{
+		Usage: 100 * (totalTicks - idleTicks) / totalTicks,
+		Busy:  totalTicks - idleTicks,
+		Total: totalTicks,
+	}
+
+	err := SendMetric(sample, "cpu_saturation")
+	if err != nil {
+		log.Println("failed to send cpu_saturation metric, API offline?")
+	}
+
+	return nil
 }

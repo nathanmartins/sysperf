@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 )
 
@@ -43,87 +45,6 @@ type PerfFile struct {
 	} `json:"samples"`
 }
 
-func perf() {
-
-	CleanUp()
-
-	ticker := time.NewTicker(2 * time.Second)
-	quit := make(chan struct{})
-
-	for {
-		select {
-		case <-ticker.C:
-			err := RunPerf()
-			if err != nil {
-				CleanUp()
-				log.Fatal(err)
-			}
-
-			err = ProcessPerf()
-			if err != nil {
-				CleanUp()
-				log.Fatal(err)
-			}
-		case <-quit:
-			CleanUp()
-			ticker.Stop()
-			return
-		}
-	}
-
-}
-
-func RunPerf() error {
-
-	err := exec.Command("perf", "record", "-F", "99", "-a", "--", "sleep", "5").Run()
-
-	if err != nil {
-		return fmt.Errorf("failed to run")
-	}
-	err = exec.Command("perf", "data", "convert", "--to-json", "perf.json").Run()
-
-	if err != nil {
-		return fmt.Errorf("failed to convert: %s", err)
-	}
-
-	return nil
-}
-
-func ProcessPerf() error {
-	var perfFile PerfFile
-
-	content, err := ioutil.ReadFile("perf.json")
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(content, &perfFile)
-	if err != nil {
-		return err
-	}
-
-	err = SendMetric(perfFile, "all_cpus")
-	if err != nil {
-		return err
-	}
-
-	CleanUp()
-
-	return nil
-}
-
-func CleanUp() {
-	p := []string{
-		"perf.json",
-		"perf.data",
-		"perf.data.old",
-	}
-
-	for _, pp := range p {
-		_ = os.Remove(pp)
-	}
-}
-
 func SendMetric(event interface{}, eventName string) error {
 	body, err := json.Marshal(event)
 	if err != nil {
@@ -151,18 +72,75 @@ func SendMetric(event interface{}, eventName string) error {
 	c := &http.Client{}
 	res, err := c.Do(req)
 	if err != nil {
-		log.Println("sysperf api request error:", err)
-		return err
+		return fmt.Errorf("sysperf api error: %s", err)
 	}
-	defer res.Body.Close()
+	defer func(Body io.ReadCloser) {
+		_ = Body.Close()
+	}(res.Body)
 
 	response, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		log.Println("sysperf api body read error:", err)
+		return fmt.Errorf("sysperf api error: %s", err)
+	}
+
+	log.Printf("API response: %s\n", response)
+
+	return nil
+}
+
+func CPULatency() error {
+
+	_ = FileCleanUp("cpu-lat*")
+
+	command := []string{"sched", "record", "-o", "cpu-lat.data", "--", "sleep", "1"}
+	err := exec.Command("perf", command...).Run()
+
+	if err != nil {
+		_ = FileCleanUp("cpu-lat*")
+		return fmt.Errorf("failed to run CPULatency: %s", err)
+	}
+	err = exec.Command("perf", "data", "-i", "cpu-lat.data", "convert", "--to-json", "cpu-lat.json").Run()
+
+	if err != nil {
+		_ = FileCleanUp("cpu-lat*")
+		return fmt.Errorf("failed to convert CPULatency: %s", err)
+	}
+
+	var perfFile PerfFile
+
+	content, err := ioutil.ReadFile("cpu-lat.json")
+	if err != nil {
+		_ = FileCleanUp("cpu-lat*")
 		return err
 	}
 
-	log.Printf("event succesfully saved: %s\n", string(response))
+	err = json.Unmarshal(content, &perfFile)
+	if err != nil {
+		_ = FileCleanUp("cpu-lat*")
+		return err
+	}
+
+	err = SendMetric(perfFile, "cpu_latency")
+	if err != nil {
+		_ = FileCleanUp("cpu-lat*")
+		log.Println("failed to send cpu_latency metric, API offline?")
+		//return err
+	}
 
 	return nil
+}
+
+func FileCleanUp(pattern string) error {
+
+	files, err := filepath.Glob(pattern)
+	if err != nil {
+		return err
+	}
+	for _, f := range files {
+		if err = os.Remove(f); err != nil {
+			return err
+		}
+	}
+
+	return err
 }
