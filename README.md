@@ -24,7 +24,9 @@ errors: scalar counts. eg, "this network interface has had fifty late collisions
 - perf (linux-tools-common linux-tools-generic linux-tools-`uname -r`)
 - bcc tools (bpfcc-tools)
 
-## Currently, working on
+## Currently, working on CPU 
 
--[x] CPU utilization: (either per-CPU or a system-wide average)
--[ ] CPU saturation: run-queue length or scheduler latency(aka
+- [x] Raw metric for CPU utilization: system-wide average
+- [x] Raw metric for CPU saturation: run-queue length or scheduler latency
+- [ ] show saturation in frontend
+- [ ] show latency in frontend
