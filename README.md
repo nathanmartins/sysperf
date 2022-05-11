@@ -1,8 +1,30 @@
-# sysperf
-```shell
-sudo docker run -it --cap-add SYS_ADMIN --privileged sysperf bash
+# sysperf - USE method visualization tool
 
-perf record -F 99 -a -g -- sleep 30
+## What is the USE method?
+The USE Method can be summarized as:
 
-perf data convert --to-json
-```
+For every resource, check utilization, saturation, and errors.
+It's intended to be used early in a performance investigation, to identify systemic bottlenecks.
+
+Terminology definitions:
+
+resource: all physical server functional components (CPUs, disks, busses, ...) [1]
+utilization: the average time that the resource was busy servicing work [2]
+saturation: the degree to which the resource has extra work which it can't service, often queued
+errors: the count of error events
+
+The metrics are usually expressed in the following terms:
+
+utilization: as a percent over a time interval. eg, "one disk is running at 90% utilization".
+saturation: as a queue length. eg, "the CPUs have an average run queue length of four".
+errors: scalar counts. eg, "this network interface has had fifty late collisions".
+
+## Requirements:
+
+- perf (linux-tools-common linux-tools-generic linux-tools-`uname -r`)
+- bcc tools (bpfcc-tools)
+
+## Currently, working on
+
+-[x] CPU utilization: (either per-CPU or a system-wide average)
+-[ ] CPU saturation: run-queue length or scheduler latency(aka
