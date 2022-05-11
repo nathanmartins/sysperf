@@ -28,19 +28,23 @@ func main() {
 	}()
 
 	for {
-		err := SampleCPUSaturation(3 * time.Second)
 
-		if err != nil {
-			cleanup()
-			log.Fatal(err)
-		}
+		go func() {
+			err := SampleCPUSaturation(3 * time.Second)
+			if err != nil {
+				cleanup()
+				log.Fatal(err)
+			}
+		}()
 
-		err = CPULatency()
-		if err != nil {
-			cleanup()
-			log.Fatal(err)
-		}
+		go func() {
+			err := SampleCPULatency()
+			if err != nil {
+				cleanup()
+				log.Fatal(err)
+			}
+		}()
 
-		time.Sleep(10 * time.Second) // or runtime.Gosched() or similar per @misterbee
+		time.Sleep(10 * time.Second) // Agent run interval
 	}
 }

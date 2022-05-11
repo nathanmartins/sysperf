@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 )
@@ -84,48 +83,6 @@ func SendMetric(event interface{}, eventName string) error {
 	}
 
 	log.Printf("API response: %s\n", response)
-
-	return nil
-}
-
-func CPULatency() error {
-
-	_ = FileCleanUp("cpu-lat*")
-
-	command := []string{"sched", "record", "-o", "cpu-lat.data", "--", "sleep", "1"}
-	err := exec.Command("perf", command...).Run()
-
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return fmt.Errorf("failed to run CPULatency: %s", err)
-	}
-	err = exec.Command("perf", "data", "-i", "cpu-lat.data", "convert", "--to-json", "cpu-lat.json").Run()
-
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return fmt.Errorf("failed to convert CPULatency: %s", err)
-	}
-
-	var perfFile PerfFile
-
-	content, err := ioutil.ReadFile("cpu-lat.json")
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return err
-	}
-
-	err = json.Unmarshal(content, &perfFile)
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return err
-	}
-
-	err = SendMetric(perfFile, "cpu_latency")
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		log.Println("failed to send cpu_latency metric, API offline?")
-		//return err
-	}
 
 	return nil
 }

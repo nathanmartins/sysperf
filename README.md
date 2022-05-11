@@ -21,6 +21,7 @@ errors: scalar counts. eg, "this network interface has had fifty late collisions
 
 ## Requirements:
 
+- Must be root to run perf tool
 - perf (linux-tools-common linux-tools-generic linux-tools-`uname -r`)
 - bcc tools (bpfcc-tools)
 
