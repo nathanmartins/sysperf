@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -72,24 +74,17 @@ func main() {
 }
 
 func RunPerf() error {
-	log.Println("running perf")
 
-	err := exec.Command("perf", "record", "-F", "99", "-a", "-g", "--", "sleep", "5").Run()
+	err := exec.Command("perf", "record", "-F", "99", "-a", "--", "sleep", "5").Run()
 
 	if err != nil {
 		return fmt.Errorf("failed to run")
 	}
-
-	log.Println("done running perf")
-
-	log.Println("converting")
 	err = exec.Command("perf", "data", "convert", "--to-json", "perf.json").Run()
 
 	if err != nil {
 		return fmt.Errorf("failed to convert: %s", err)
 	}
-
-	log.Println("done converting")
 
 	return nil
 }
@@ -107,17 +102,12 @@ func ProcessPerf() error {
 		return err
 	}
 
-	commandMapping := make(map[int]string)
-
-	for _, sample := range perfFile.Samples {
-
-		if _, ok := commandMapping[sample.Pid]; !ok {
-			commandMapping[sample.Pid] = sample.Comm
-		}
+	err = SendMetric(perfFile, "all_cpus")
+	if err != nil {
+		return err
 	}
 
 	CleanUp()
-	fmt.Println(commandMapping)
 
 	return nil
 }
@@ -132,4 +122,47 @@ func CleanUp() {
 	for _, pp := range p {
 		_ = os.Remove(pp)
 	}
+}
+
+func SendMetric(event interface{}, eventName string) error {
+	body, err := json.Marshal(event)
+	if err != nil {
+		log.Println("error marshaling event:", err)
+		return err
+	}
+
+	sysPerfUrl, found := os.LookupEnv("SERVER_URL")
+
+	if !found {
+		log.Println("WARNING: SERVER_URL env var not found, using default: localhost:8080")
+		sysPerfUrl = "http://localhost:8080/metric"
+	}
+
+	payload := bytes.NewBuffer(body)
+	req, err := http.NewRequest(http.MethodPost, sysPerfUrl, payload)
+	if err != nil {
+		log.Println("new request error:", err)
+		return err
+	}
+
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-Event-Name", eventName)
+
+	c := &http.Client{}
+	res, err := c.Do(req)
+	if err != nil {
+		log.Println("sysperf api request error:", err)
+		return err
+	}
+	defer res.Body.Close()
+
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		log.Println("sysperf api body read error:", err)
+		return err
+	}
+
+	log.Printf("event succesfully saved: %s\n", string(response))
+
+	return nil
 }
