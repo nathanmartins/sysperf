@@ -3,3 +3,5 @@ sysperf
 perf.json
 perf.data
 cpu-lat.*
+grafana-*
+prometheus-*

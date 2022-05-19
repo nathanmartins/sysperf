@@ -1,50 +1,50 @@
 package main
 
 import (
-	"fmt"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
-	"time" // or "runtime"
+	"net/http"
+	"time"
 )
 
-func cleanup() {
-	fmt.Println("cleanup")
-}
+var (
+	cpuSaturation = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cpu_saturation",
+		Help: "Current temperature of the CPU.",
+	})
+	cpuSaturationBusy = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cpu_saturation_busy",
+		Help: "Current temperature of the CPU.",
+	})
+)
 
-const VERSION = "0.0.1"
-const USER_ID = "0fa48e83-1b1a-4822-98e5-807bf06b2b63"
+func init() {
+	// Metrics have to be registered to be exposed:
+	prometheus.MustRegister(cpuSaturation)
+	prometheus.MustRegister(cpuSaturationBusy)
+}
 
 func main() {
 
-	log.Printf("starting sysperf agent version: %s\n", VERSION)
-	c := make(chan os.Signal)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	go func() {
-		<-c
-		cleanup()
-		os.Exit(1)
+
+		for {
+			sample, err := SampleCPUSaturation(3 * time.Second)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			cpuSaturation.Set(sample.Usage)
+			cpuSaturationBusy.Set(sample.Busy)
+
+			time.Sleep(10 * time.Second) // Agent run interval
+		}
+
 	}()
 
-	for {
-
-		go func() {
-			err := SampleCPUSaturation(3 * time.Second)
-			if err != nil {
-				cleanup()
-				log.Fatal(err)
-			}
-		}()
-
-		go func() {
-			err := SampleCPULatency(1)
-			if err != nil {
-				cleanup()
-				log.Fatal(err)
-			}
-		}()
-
-		time.Sleep(10 * time.Second) // Agent run interval
-	}
+	// The Handler function provides a default handler to expose metrics
+	// via an HTTP server. "/metrics" is the usual endpoint for that.
+	http.Handle("/metrics", promhttp.Handler())
+	log.Fatal(http.ListenAndServe(":9001", nil))
 }

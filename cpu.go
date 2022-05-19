@@ -43,7 +43,7 @@ type CPUSaturation struct {
 	Total float64 `json:"total"`
 }
 
-func SampleCPUSaturation(interval time.Duration) error {
+func SampleCPUSaturation(interval time.Duration) (CPUSaturation, error) {
 	idle0, total0 := getCPUSample()
 	time.Sleep(interval)
 	idle1, total1 := getCPUSample()
@@ -57,12 +57,7 @@ func SampleCPUSaturation(interval time.Duration) error {
 		Total: totalTicks,
 	}
 
-	err := SendMetric(sample, "cpu_saturation")
-	if err != nil {
-		log.Println("failed to send cpu_saturation metric, API offline?")
-	}
-
-	return nil
+	return sample, nil
 }
 
 func SampleCPULatency(interval time.Duration) error {
