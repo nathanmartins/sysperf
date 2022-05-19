@@ -1,10 +1,9 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os/exec"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +41,12 @@ type CPUSaturation struct {
 	Total float64 `json:"total"`
 }
 
+type CPULatency struct {
+	Command         string  `json:"command"`
+	TimeSpentOnCPU  float64 `json:"time-spent-on-cpu"`
+	RunQueueLatency float64 `json:"run-queue-latency"`
+}
+
 func SampleCPUSaturation(interval time.Duration) (CPUSaturation, error) {
 	idle0, total0 := getCPUSample()
 	time.Sleep(interval)
@@ -59,39 +64,40 @@ func SampleCPUSaturation(interval time.Duration) (CPUSaturation, error) {
 	return sample, nil
 }
 
-func SampleCPULatency(interval time.Duration) error {
+func SampleCPULatency() ([]CPULatency, error) {
 
-	_ = FileCleanUp("cpu-lat*")
+	var samples []CPULatency
 
-	duration := fmt.Sprintf("%d", interval)
-
-	command := []string{"sched", "record", "-o", "cpu-lat.data", "--", "sleep", duration}
-	err := exec.Command("perf", command...).Run()
-
+	files, err := ioutil.ReadDir("/proc/")
 	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return fmt.Errorf("failed to run CPULatency: %s", err)
-	}
-	err = exec.Command("perf", "data", "-i", "cpu-lat.data", "convert", "--to-json", "cpu-lat.json").Run()
-
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return fmt.Errorf("failed to convert CPULatency: %s", err)
+		return samples, err
 	}
 
-	var perfFile PerfFile
+	for _, f := range files {
 
-	content, err := ioutil.ReadFile("cpu-lat.json")
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return err
+		_, cErr := strconv.Atoi(f.Name())
+
+		if cErr == nil {
+
+			comm, _ := os.ReadFile(fmt.Sprintf("/proc/%s/comm", f.Name()))
+			fullB, _ := os.ReadFile(fmt.Sprintf("/proc/%s/schedstat", f.Name()))
+
+			latencies := strings.Split(string(fullB), " ")
+
+			intoLatencies := make([]int, len(latencies))
+
+			for i, s := range latencies {
+				intoLatencies[i], _ = strconv.Atoi(s)
+			}
+
+			c := CPULatency{
+				Command:         string(comm),
+				TimeSpentOnCPU:  float64(intoLatencies[0]) / float64(time.Millisecond),
+				RunQueueLatency: float64(intoLatencies[1]) / float64(time.Millisecond),
+			}
+			samples = append(samples, c)
+		}
 	}
 
-	err = json.Unmarshal(content, &perfFile)
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		return err
-	}
-
-	return nil
+	return samples, err
 }

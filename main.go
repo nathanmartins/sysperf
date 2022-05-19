@@ -21,6 +21,18 @@ var (
 		Name: "cpu_saturation_total",
 		Help: "Current temperature of the CPU.",
 	})
+	cpuLatency = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cpu_latency",
+		},
+		[]string{"command"},
+	)
+	cpuLatencySpent = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cpu_latency_spent",
+		},
+		[]string{"command"},
+	)
 )
 
 func init() {
@@ -28,6 +40,8 @@ func init() {
 	prometheus.MustRegister(cpuSaturation)
 	prometheus.MustRegister(cpuSaturationBusy)
 	prometheus.MustRegister(cpuSaturationTotal)
+	prometheus.MustRegister(cpuLatency)
+	prometheus.MustRegister(cpuLatencySpent)
 }
 
 func main() {
@@ -45,6 +59,26 @@ func main() {
 			cpuSaturationBusy.Set(sample.Total)
 
 			time.Sleep(5 * time.Second) // Agent run interval
+		}
+
+	}()
+
+	go func() {
+
+		for {
+			samples, err := SampleCPULatency()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, sample := range samples {
+				log.Printf("%+v", sample)
+				cpuLatency.WithLabelValues(sample.Command).Set(sample.RunQueueLatency)
+				cpuLatencySpent.WithLabelValues(sample.Command).Set(sample.TimeSpentOnCPU)
+			}
+
+			time.Sleep(1 * time.Second) // Agent run interval
+
 		}
 
 	}()
