@@ -90,12 +90,14 @@ func SampleCPULatency() ([]CPULatency, error) {
 				intoLatencies[i], _ = strconv.Atoi(s)
 			}
 
-			c := CPULatency{
-				Command:         string(comm),
-				TimeSpentOnCPU:  float64(intoLatencies[0]) / float64(time.Millisecond),
-				RunQueueLatency: float64(intoLatencies[1]) / float64(time.Millisecond),
+			if len(latencies) == 3 {
+				c := CPULatency{
+					Command:         string(comm),
+					TimeSpentOnCPU:  float64(intoLatencies[0]) / float64(time.Millisecond),
+					RunQueueLatency: float64(intoLatencies[1]) / float64(time.Millisecond),
+				}
+				samples = append(samples, c)
 			}
-			samples = append(samples, c)
 		}
 	}
 
