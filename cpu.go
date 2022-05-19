@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -92,13 +91,6 @@ func SampleCPULatency(interval time.Duration) error {
 	if err != nil {
 		_ = FileCleanUp("cpu-lat*")
 		return err
-	}
-
-	err = SendMetric(perfFile, "cpu_latency")
-	if err != nil {
-		_ = FileCleanUp("cpu-lat*")
-		log.Println("failed to send cpu_latency metric, API offline?")
-		//return err
 	}
 
 	return nil

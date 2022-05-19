@@ -17,12 +17,17 @@ var (
 		Name: "cpu_saturation_busy",
 		Help: "Current temperature of the CPU.",
 	})
+	cpuSaturationTotal = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cpu_saturation_total",
+		Help: "Current temperature of the CPU.",
+	})
 )
 
 func init() {
 	// Metrics have to be registered to be exposed:
 	prometheus.MustRegister(cpuSaturation)
 	prometheus.MustRegister(cpuSaturationBusy)
+	prometheus.MustRegister(cpuSaturationTotal)
 }
 
 func main() {
@@ -37,8 +42,9 @@ func main() {
 
 			cpuSaturation.Set(sample.Usage)
 			cpuSaturationBusy.Set(sample.Busy)
+			cpuSaturationBusy.Set(sample.Total)
 
-			time.Sleep(10 * time.Second) // Agent run interval
+			time.Sleep(5 * time.Second) // Agent run interval
 		}
 
 	}()
