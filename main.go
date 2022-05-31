@@ -5,6 +5,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 )
 
@@ -21,30 +23,40 @@ var (
 		Name: "cpu_saturation_total",
 		Help: "Current temperature of the CPU.",
 	})
-	cpuLatency = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
+	cpuLatency = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
 			Name: "cpu_latency",
 		},
-		[]string{"command"},
+		[]string{"command", "hostname"},
 	)
 	cpuLatencySpent = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
-			Name: "cpu_latency_spent",
+			Name: "spent_cpu_latency",
 		},
-		[]string{"command"},
+		[]string{"command", "hostname"},
+	)
+	memLatency = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "mem_latency",
+		},
+		[]string{"command", "hostname"},
 	)
 )
 
 func init() {
-	// Metrics have to be registered to be exposed:
 	prometheus.MustRegister(cpuSaturation)
 	prometheus.MustRegister(cpuSaturationBusy)
 	prometheus.MustRegister(cpuSaturationTotal)
 	prometheus.MustRegister(cpuLatency)
 	prometheus.MustRegister(cpuLatencySpent)
+	prometheus.MustRegister(memLatency)
 }
 
 func main() {
+
+	hostnameBytes, _ := os.ReadFile("/etc/hostname")
+	hostname := string(hostnameBytes)
+	hostname = strings.TrimSuffix(hostname, "\n")
 
 	go func() {
 
@@ -56,7 +68,6 @@ func main() {
 
 			cpuSaturation.Set(sample.Usage)
 			cpuSaturationBusy.Set(sample.Busy)
-			cpuSaturationBusy.Set(sample.Total)
 
 			time.Sleep(5 * time.Second) // Agent run interval
 		}
@@ -72,13 +83,29 @@ func main() {
 			}
 
 			for _, sample := range samples {
-				log.Printf("%+v", sample)
-				cpuLatency.WithLabelValues(sample.Command).Set(sample.RunQueueLatency)
-				cpuLatencySpent.WithLabelValues(sample.Command).Set(sample.TimeSpentOnCPU)
+				cpuLatency.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
+				cpuLatencySpent.WithLabelValues(sample.Command, hostname).Set(sample.TimeSpentOnCPU)
 			}
 
 			time.Sleep(1 * time.Second) // Agent run interval
 
+		}
+
+	}()
+
+	go func() {
+
+		for {
+			samples, err := SampleMemoryLatency()
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			for _, sample := range samples {
+				memLatency.WithLabelValues(sample.Command, hostname).Set(sample.SizeKb / 1000)
+			}
+
+			time.Sleep(1 * time.Second) // Agent run interval
 		}
 
 	}()
