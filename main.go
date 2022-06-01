@@ -38,9 +38,9 @@ var (
 
 func init() {
 	prometheus.MustRegister(cpuSaturationGauge)
-	prometheus.MustRegister(cpuLatencyHistogram)
 	prometheus.MustRegister(cpuLatencySpentGauge)
 	prometheus.MustRegister(memLatencyGauge)
+	prometheus.MustRegister(cpuLatencyHistogram)
 }
 
 func main() {
