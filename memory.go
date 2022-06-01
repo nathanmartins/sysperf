@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -13,6 +14,11 @@ import (
 type MemoryUsage struct {
 	Command string  `json:"command"`
 	SizeKb  float64 `json:"size-kb"`
+}
+
+type MemorySaturation struct {
+	SwapUsage   float64 `json:"swap-usage"`
+	OOMKillings float64 `json:"oom_killings"`
 }
 
 func SampleMemoryUsage() ([]MemoryUsage, error) {
@@ -61,4 +67,31 @@ func SampleMemoryUsage() ([]MemoryUsage, error) {
 	}
 
 	return samples, err
+}
+
+func SampleMemorySaturation() (MemorySaturation, error) {
+	var ms MemorySaturation
+	var found int
+
+	memBytes, err := os.ReadFile("/proc/meminfo")
+
+	if err != nil {
+		return ms, err
+	}
+
+	temp := strings.Split(string(memBytes), "\n")
+
+	for _, item := range temp {
+		if strings.Contains(item, "SwapTotal") {
+			re := regexp.MustCompile("[0-9]+")
+			found, err = strconv.Atoi(strings.Join(re.FindAllString(item, -1), ""))
+			if err != nil {
+				return ms, err
+			}
+			ms.SwapUsage = float64(found)
+		}
+
+	}
+
+	return ms, nil
 }

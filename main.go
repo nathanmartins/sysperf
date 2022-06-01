@@ -26,6 +26,16 @@ var (
 		},
 		[]string{"command", "hostname"},
 	)
+
+	memSwapSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "memory_saturation_swap_usage",
+		Help: "Amount of swap used by the node",
+	})
+
+	memOOMKillingSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "oom_killings",
+		Help: "Amount of processes killed due to memory overload",
+	})
 	agentTime = 3 * time.Second
 )
 
@@ -36,6 +46,8 @@ func init() {
 
 	// Memory
 	prometheus.MustRegister(memUsageGauge)
+	prometheus.MustRegister(memSwapSaturationGauge)
+	prometheus.MustRegister(memOOMKillingSaturationGauge)
 }
 
 func main() {
@@ -45,6 +57,7 @@ func main() {
 	hostname = strings.TrimSuffix(hostname, "\n")
 
 	// Should these be separate goroutines?
+	// cpu usage and saturation
 	go func() {
 
 		for {
@@ -59,6 +72,7 @@ func main() {
 
 	}()
 
+	// memory usage
 	go func() {
 
 		for {
@@ -74,6 +88,19 @@ func main() {
 			time.Sleep(agentTime) // Agent run interval
 		}
 
+	}()
+
+	// memory saturation
+	go func() {
+		for {
+			sample, err := SampleMemorySaturation()
+			if err != nil {
+				log.Fatal(err)
+			}
+			memSwapSaturationGauge.Set(sample.SwapUsage)
+			memOOMKillingSaturationGauge.Set(sample.OOMKillings)
+			time.Sleep(agentTime) // Agent run interval
+		}
 	}()
 
 	http.Handle("/metrics", promhttp.Handler())
