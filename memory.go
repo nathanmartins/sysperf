@@ -10,14 +10,14 @@ import (
 	"strings"
 )
 
-type MemoryLatency struct {
+type MemoryUsage struct {
 	Command string  `json:"command"`
 	SizeKb  float64 `json:"size-kb"`
 }
 
-func SampleMemoryLatency() ([]MemoryLatency, error) {
+func SampleMemoryUsage() ([]MemoryUsage, error) {
 
-	var samples []MemoryLatency
+	var samples []MemoryUsage
 
 	files, err := ioutil.ReadDir("/proc/")
 	if err != nil {
@@ -49,7 +49,7 @@ func SampleMemoryLatency() ([]MemoryLatency, error) {
 					command := string(comm)
 					command = strings.TrimSuffix(command, "\n")
 
-					c := MemoryLatency{
+					c := MemoryUsage{
 						Command: command,
 						SizeKb:  float64(size),
 					}

@@ -3,11 +3,16 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type CPUUsage struct {
+	Usage float64 `json:"usage"`
+	Busy  float64 `json:"busy"`
+	Total float64 `json:"total"`
+}
 
 func getCPUSample() (idle, total uint64) {
 	contents, err := ioutil.ReadFile("/proc/stat")
@@ -35,18 +40,6 @@ func getCPUSample() (idle, total uint64) {
 	return
 }
 
-type CPUUsage struct {
-	Usage float64 `json:"usage"`
-	Busy  float64 `json:"busy"`
-	Total float64 `json:"total"`
-}
-
-type CPULatency struct {
-	Command         string  `json:"command"`
-	TimeSpentOnCPU  float64 `json:"time-spent-on-cpu"`
-	RunQueueLatency float64 `json:"run-queue-latency"`
-}
-
 func SampleCPUUsage(interval time.Duration) (CPUUsage, error) {
 	idle0, total0 := getCPUSample()
 	time.Sleep(interval)
@@ -62,44 +55,4 @@ func SampleCPUUsage(interval time.Duration) (CPUUsage, error) {
 	}
 
 	return sample, nil
-}
-
-func SampleCPULatency() ([]CPULatency, error) {
-
-	var samples []CPULatency
-
-	files, err := ioutil.ReadDir("/proc/")
-	if err != nil {
-		return samples, err
-	}
-
-	for _, f := range files {
-
-		_, cErr := strconv.Atoi(f.Name())
-
-		if cErr == nil {
-
-			comm, _ := os.ReadFile(fmt.Sprintf("/proc/%s/comm", f.Name()))
-			fullB, _ := os.ReadFile(fmt.Sprintf("/proc/%s/schedstat", f.Name()))
-
-			latencies := strings.Split(string(fullB), " ")
-
-			intoLatencies := make([]int, len(latencies))
-
-			for i, s := range latencies {
-				intoLatencies[i], _ = strconv.Atoi(s)
-			}
-
-			if len(latencies) == 3 {
-				c := CPULatency{
-					Command:         string(comm),
-					TimeSpentOnCPU:  float64(intoLatencies[0]) / float64(time.Millisecond),
-					RunQueueLatency: float64(intoLatencies[1]) / float64(time.Millisecond),
-				}
-				samples = append(samples, c)
-			}
-		}
-	}
-
-	return samples, err
 }
