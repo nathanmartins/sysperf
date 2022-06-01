@@ -98,8 +98,6 @@ func main() {
 
 	}()
 
-	// The Handler function provides a default handler to expose metrics
-	// via an HTTP server. "/metrics" is the usual endpoint for that.
 	http.Handle("/metrics", promhttp.Handler())
 	log.Println("sysperf prometheus exported started and is running on port: 9001")
 	log.Fatal(http.ListenAndServe(":9001", nil))
