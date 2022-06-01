@@ -20,18 +20,18 @@ var (
 		Name: "cpu_saturation",
 		Help: "Current saturation of CPU resource",
 	})
-	cpuQueueLatencyHistogram = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "cpu_queue_latency",
-		},
-		[]string{"command", "hostname"},
-	)
-	cpuTimeSpentHistogram = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name: "cpu_time_spent",
-		},
-		[]string{"command", "hostname"},
-	)
+	//cpuQueueLatencyHistogram = prometheus.NewHistogramVec(
+	//	prometheus.HistogramOpts{
+	//		Name: "cpu_queue_latency",
+	//	},
+	//	[]string{"command", "hostname"},
+	//)
+	//cpuTimeSpentHistogram = prometheus.NewHistogramVec(
+	//	prometheus.HistogramOpts{
+	//		Name: "cpu_time_spent",
+	//	},
+	//	[]string{"command", "hostname"},
+	//)
 	// Memory
 	memLatencyGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -46,8 +46,8 @@ func init() {
 	// CPU
 	prometheus.MustRegister(cpuUsageGauge)
 	prometheus.MustRegister(cpuSaturationGauge)
-	prometheus.MustRegister(cpuTimeSpentHistogram)
-	prometheus.MustRegister(cpuQueueLatencyHistogram)
+	//prometheus.MustRegister(cpuTimeSpentHistogram)
+	//prometheus.MustRegister(cpuQueueLatencyHistogram)
 
 	// Memory
 	prometheus.MustRegister(memLatencyGauge)
@@ -73,24 +73,24 @@ func main() {
 
 	}()
 
-	go func() {
-
-		for {
-			samples, err := SampleCPULatency()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, sample := range samples {
-				cpuQueueLatencyHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
-				cpuTimeSpentHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.TimeSpentOnCPU)
-			}
-
-			time.Sleep(agentTime) // Agent run interval
-
-		}
-
-	}()
+	//go func() {
+	//
+	//	for {
+	//		samples, err := SampleCPULatency()
+	//		if err != nil {
+	//			log.Fatal(err)
+	//		}
+	//
+	//		for _, sample := range samples {
+	//			cpuQueueLatencyHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
+	//			cpuTimeSpentHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.TimeSpentOnCPU)
+	//		}
+	//
+	//		time.Sleep(agentTime) // Agent run interval
+	//
+	//	}
+	//
+	//}()
 
 	//go func() {
 	//
