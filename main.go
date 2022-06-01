@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	cpuSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_saturation",
-		Help: "Current saturation of our CPU",
+	// CPU
+	cpuUsageGauge = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "cpu_usage",
+		Help: "Current usage of CPU resource",
 	})
 	cpuLatencyHistogram = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
@@ -27,6 +28,7 @@ var (
 		},
 		[]string{"command", "hostname"},
 	)
+	// Memory
 	memLatencyGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "mem_latency",
@@ -37,10 +39,13 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(cpuSaturationGauge)
+	// CPU
+	prometheus.MustRegister(cpuUsageGauge)
 	prometheus.MustRegister(cpuLatencySpentGauge)
-	prometheus.MustRegister(memLatencyGauge)
 	prometheus.MustRegister(cpuLatencyHistogram)
+
+	// Memory
+	prometheus.MustRegister(memLatencyGauge)
 }
 
 func main() {
@@ -52,51 +57,51 @@ func main() {
 	go func() {
 
 		for {
-			sample, err := SampleCPUSaturation(agentTime)
+			sample, err := SampleCPUUsage(agentTime)
 			if err != nil {
 				log.Fatal(err)
 			}
-			cpuSaturationGauge.Set(sample.Usage)
+			cpuUsageGauge.Set(sample.Usage)
 			time.Sleep(agentTime) // Agent run interval
 		}
 
 	}()
 
-	go func() {
+	//go func() {
+	//
+	//	for {
+	//		samples, err := SampleCPULatency()
+	//		if err != nil {
+	//			log.Fatal(err)
+	//		}
+	//
+	//		for _, sample := range samples {
+	//			cpuLatencyHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
+	//			cpuLatencySpentGauge.WithLabelValues(sample.Command, hostname).Set(sample.TimeSpentOnCPU)
+	//		}
+	//
+	//		time.Sleep(agentTime) // Agent run interval
+	//
+	//	}
+	//
+	//}()
 
-		for {
-			samples, err := SampleCPULatency()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, sample := range samples {
-				cpuLatencyHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
-				cpuLatencySpentGauge.WithLabelValues(sample.Command, hostname).Set(sample.TimeSpentOnCPU)
-			}
-
-			time.Sleep(agentTime) // Agent run interval
-
-		}
-
-	}()
-
-	go func() {
-
-		for {
-			samples, err := SampleMemoryLatency()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, sample := range samples {
-				memLatencyGauge.WithLabelValues(sample.Command, hostname).Set(sample.SizeKb / 1000)
-			}
-
-			time.Sleep(agentTime) // Agent run interval
-		}
-
-	}()
+	//go func() {
+	//
+	//	for {
+	//		samples, err := SampleMemoryLatency()
+	//		if err != nil {
+	//			log.Fatal(err)
+	//		}
+	//
+	//		for _, sample := range samples {
+	//			memLatencyGauge.WithLabelValues(sample.Command, hostname).Set(sample.SizeKb / 1000)
+	//		}
+	//
+	//		time.Sleep(agentTime) // Agent run interval
+	//	}
+	//
+	//}()
 
 	http.Handle("/metrics", promhttp.Handler())
 	log.Println("sysperf prometheus exported started and is running on port: 9001")

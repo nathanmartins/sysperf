@@ -35,7 +35,7 @@ func getCPUSample() (idle, total uint64) {
 	return
 }
 
-type CPUSaturation struct {
+type CPUUsage struct {
 	Usage float64 `json:"usage"`
 	Busy  float64 `json:"busy"`
 	Total float64 `json:"total"`
@@ -47,7 +47,7 @@ type CPULatency struct {
 	RunQueueLatency float64 `json:"run-queue-latency"`
 }
 
-func SampleCPUSaturation(interval time.Duration) (CPUSaturation, error) {
+func SampleCPUUsage(interval time.Duration) (CPUUsage, error) {
 	idle0, total0 := getCPUSample()
 	time.Sleep(interval)
 	idle1, total1 := getCPUSample()
@@ -55,7 +55,7 @@ func SampleCPUSaturation(interval time.Duration) (CPUSaturation, error) {
 	idleTicks := float64(idle1 - idle0)
 	totalTicks := float64(total1 - total0)
 
-	sample := CPUSaturation{
+	sample := CPUUsage{
 		Usage: 100 * (totalTicks - idleTicks) / totalTicks,
 		Busy:  totalTicks - idleTicks,
 		Total: totalTicks,
