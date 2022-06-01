@@ -11,45 +11,36 @@ import (
 )
 
 var (
-	cpuSaturation = prometheus.NewGauge(prometheus.GaugeOpts{
+	cpuSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "cpu_saturation",
-		Help: "Current temperature of the CPU.",
+		Help: "Current saturation of our CPU",
 	})
-	cpuSaturationBusy = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_saturation_busy",
-		Help: "Current temperature of the CPU.",
-	})
-	cpuSaturationTotal = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_saturation_total",
-		Help: "Current temperature of the CPU.",
-	})
-	cpuLatency = prometheus.NewHistogramVec(
+	cpuLatencyHistogram = prometheus.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name: "cpu_latency",
 		},
 		[]string{"command", "hostname"},
 	)
-	cpuLatencySpent = prometheus.NewGaugeVec(
+	cpuLatencySpentGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "spent_cpu_latency",
 		},
 		[]string{"command", "hostname"},
 	)
-	memLatency = prometheus.NewGaugeVec(
+	memLatencyGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "mem_latency",
 		},
 		[]string{"command", "hostname"},
 	)
+	agentTime = 5 * time.Second
 )
 
 func init() {
-	prometheus.MustRegister(cpuSaturation)
-	prometheus.MustRegister(cpuSaturationBusy)
-	prometheus.MustRegister(cpuSaturationTotal)
-	prometheus.MustRegister(cpuLatency)
-	prometheus.MustRegister(cpuLatencySpent)
-	prometheus.MustRegister(memLatency)
+	prometheus.MustRegister(cpuSaturationGauge)
+	prometheus.MustRegister(cpuLatencyHistogram)
+	prometheus.MustRegister(cpuLatencySpentGauge)
+	prometheus.MustRegister(memLatencyGauge)
 }
 
 func main() {
@@ -61,15 +52,12 @@ func main() {
 	go func() {
 
 		for {
-			sample, err := SampleCPUSaturation(3 * time.Second)
+			sample, err := SampleCPUSaturation(agentTime)
 			if err != nil {
 				log.Fatal(err)
 			}
-
-			cpuSaturation.Set(sample.Usage)
-			cpuSaturationBusy.Set(sample.Busy)
-
-			time.Sleep(5 * time.Second) // Agent run interval
+			cpuSaturationGauge.Set(sample.Usage)
+			time.Sleep(agentTime) // Agent run interval
 		}
 
 	}()
@@ -83,11 +71,11 @@ func main() {
 			}
 
 			for _, sample := range samples {
-				cpuLatency.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
-				cpuLatencySpent.WithLabelValues(sample.Command, hostname).Set(sample.TimeSpentOnCPU)
+				cpuLatencyHistogram.WithLabelValues(sample.Command, hostname).Observe(sample.RunQueueLatency)
+				cpuLatencySpentGauge.WithLabelValues(sample.Command, hostname).Set(sample.TimeSpentOnCPU)
 			}
 
-			time.Sleep(1 * time.Second) // Agent run interval
+			time.Sleep(agentTime) // Agent run interval
 
 		}
 
@@ -102,10 +90,10 @@ func main() {
 			}
 
 			for _, sample := range samples {
-				memLatency.WithLabelValues(sample.Command, hostname).Set(sample.SizeKb / 1000)
+				memLatencyGauge.WithLabelValues(sample.Command, hostname).Set(sample.SizeKb / 1000)
 			}
 
-			time.Sleep(1 * time.Second) // Agent run interval
+			time.Sleep(agentTime) // Agent run interval
 		}
 
 	}()
