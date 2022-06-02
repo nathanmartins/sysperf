@@ -1,10 +1,12 @@
+ip = 147.182.138.244
+
 build:
 	CGO_ENABLED=0 go build -ldflags="-s -w"
 
 transfer:
-	ssh root@161.35.0.6 pkill -9 sysperf || true
-	scp sysperf root@161.35.0.6:/usr/local/bin/
-	ssh root@161.35.0.6 sysperf
+	ssh root@$(ip) pkill -9 sysperf || true
+	scp sysperf root@$(ip):/usr/local/bin/
+	ssh root@$(ip) sysperf
 
 .PHONY: all
 all:

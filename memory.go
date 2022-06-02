@@ -95,3 +95,5 @@ func SampleMemorySaturation() (MemorySaturation, error) {
 
 	return ms, nil
 }
+
+// dmesg -T | egrep -i 'killed process'
