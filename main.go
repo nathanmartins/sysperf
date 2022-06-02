@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
@@ -103,7 +105,9 @@ func main() {
 		}
 	}()
 
+	sessionId := uuid.New()
+	port := 9001
 	http.Handle("/metrics", promhttp.Handler())
-	log.Println("sysperf prometheus exported started and is running on port: 9001")
-	log.Fatal(http.ListenAndServe(":9001", nil))
+	log.Printf("sysperf export is running on port: %d and your session ID is %s\n", port, sessionId)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
