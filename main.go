@@ -14,25 +14,34 @@ import (
 
 var (
 	// CPU
-	cpuUsageGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_usage",
-		Help: "Current usage of CPU resource",
-	})
-	cpuSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "cpu_saturation",
-		Help: "Current saturation of CPU resource",
-	})
+	cpuUsageGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cpu_usage",
+			Help: "Current usage of CPU resource",
+		},
+		[]string{"hostname", "session_id"},
+	)
+	cpuSaturationGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "cpu_saturation",
+			Help: "Current saturation of CPU resource",
+		},
+		[]string{"hostname", "session_id"},
+	)
 	memUsageGauge = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Name: "mem_usage",
 		},
-		[]string{"command", "hostname"},
+		[]string{"command", "hostname", "session_id"},
 	)
 
-	memSwapSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "memory_saturation_swap_usage",
-		Help: "Amount of swap used by the node",
-	})
+	memSwapSaturationGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "memory_saturation_swap_usage",
+			Help: "Amount of swap used by the node",
+		},
+		[]string{"hostname", "session_id"},
+	)
 
 	memOOMKillingSaturationGauge = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "oom_killings",
@@ -57,6 +66,7 @@ func main() {
 	hostnameBytes, _ := os.ReadFile("/etc/hostname")
 	hostname := string(hostnameBytes)
 	hostname = strings.TrimSuffix(hostname, "\n")
+	sessionId := uuid.New()
 
 	// Should these be separate goroutines?
 	// cpu usage and saturation
@@ -67,30 +77,30 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			cpuUsageGauge.Set(sample.Usage)
-			cpuSaturationGauge.Set(sample.Busy)
+			cpuUsageGauge.WithLabelValues(hostname, fmt.Sprintf("%s", sessionId)).Set(sample.Usage)
+			cpuSaturationGauge.WithLabelValues(hostname, fmt.Sprintf("%s", sessionId)).Set(sample.Busy)
 			time.Sleep(agentTime) // Agent run interval
 		}
 
 	}()
 
 	// memory usage
-	go func() {
-
-		for {
-			samples, err := SampleMemoryUsage()
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			for _, sample := range samples {
-				memUsageGauge.WithLabelValues(strings.TrimSuffix(sample.Command, "\n"), hostname).Set(sample.SizeKb / 1000)
-			}
-
-			time.Sleep(agentTime) // Agent run interval
-		}
-
-	}()
+	//go func() {
+	//
+	//	for {
+	//		samples, err := SampleMemoryUsage()
+	//		if err != nil {
+	//			log.Fatal(err)
+	//		}
+	//
+	//		for _, sample := range samples {
+	//			memUsageGauge.WithLabelValues(strings.TrimSuffix(sample.Command, "\n"), hostname).Set(sample.SizeKb / 1000)
+	//		}
+	//
+	//		time.Sleep(agentTime) // Agent run interval
+	//	}
+	//
+	//}()
 
 	// memory saturation
 	go func() {
@@ -99,13 +109,12 @@ func main() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			memSwapSaturationGauge.Set(sample.SwapUsage)
+			memSwapSaturationGauge.WithLabelValues(hostname, fmt.Sprintf("%s", sessionId)).Set(sample.SwapUsage)
 			memOOMKillingSaturationGauge.Set(sample.OOMKillings)
 			time.Sleep(agentTime) // Agent run interval
 		}
 	}()
 
-	sessionId := uuid.New()
 	port := 9001
 	http.Handle("/metrics", promhttp.Handler())
 	log.Printf("sysperf export is running on port: %d and your session ID is %s\n", port, sessionId)
