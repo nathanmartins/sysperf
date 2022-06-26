@@ -19,15 +19,4 @@ utilization: as a percent over a time interval. eg, "one disk is running at 90% 
 saturation: as a queue length. eg, "the CPUs have an average run queue length of four".
 errors: scalar counts. eg, "this network interface has had fifty late collisions".
 
-## Requirements:
-
-- Must be root to run perf tool
-- perf (linux-tools-common linux-tools-generic linux-tools-`uname -r`)
-- bcc tools (bpfcc-tools)
-
-## Currently, working on CPU 
-
-- [x] Raw metric for CPU utilization: system-wide average
-- [x] Raw metric for CPU saturation: run-queue length or scheduler latency
-- [ ] show saturation in frontend
-- [ ] show latency in frontend
+View metrics that prometheus knows about: http://localhost:9090/api/v1/label/__name__/values
