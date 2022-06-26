@@ -9,11 +9,13 @@ import (
 	"net/http"
 )
 
-var MemInfoMetric = collectors.MemInfoCollector{}
+var MemInfoMetrics = collectors.MemInfoCollector{}
+var CPUMetrics = collectors.CPUCollector{}
 
 func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	prometheus.MustRegister(MemInfoMetric)
+	prometheus.MustRegister(MemInfoMetrics)
+	prometheus.MustRegister(CPUMetrics)
 }
 
 func main() {
