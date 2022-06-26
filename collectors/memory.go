@@ -35,13 +35,13 @@ func (m *MeminfoCollector) Collect(metrics chan<- prometheus.Metric) {
 	logger := log.New(os.Stdout, "memcollector", log.LstdFlags)
 	collector, err := NewMeminfoCollector(*logger)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("error while creating collector: %s\n", err)
 	}
 
 	go func() {
 		err = collector.Update(metrics)
 		if err != nil {
-			panic(fmt.Errorf("failed to update collector: %s", err))
+			log.Printf("error while updating collector: %s\n", err)
 		}
 	}()
 
@@ -51,7 +51,7 @@ func (m *MeminfoCollector) Update(ch chan<- prometheus.Metric) error {
 
 	memInfo, err := GetMemInfo()
 	if err != nil {
-		panic(err)
+		log.Printf("error while getting meminfo: %s\n", err)
 	}
 
 	var metricType prometheus.ValueType
