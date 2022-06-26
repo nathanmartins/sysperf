@@ -1,6 +1,6 @@
 global:
-  scrape_interval:     5s
-  evaluation_interval: 5s
+  scrape_interval:     1s
+  evaluation_interval: 1s
 
 rule_files:
   # - "first.rules"
@@ -9,4 +9,4 @@ rule_files:
 scrape_configs:
   - job_name: leaky_webapp
     static_configs:
-      - targets: ['147.182.138.244:9001']
+      - targets: ['localhost:8080']

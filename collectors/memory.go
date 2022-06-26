@@ -64,7 +64,7 @@ func (m *MeminfoCollector) Update(ch chan<- prometheus.Metric) error {
 		}
 		ch <- prometheus.MustNewConstMetric(
 			prometheus.NewDesc(
-				prometheus.BuildFQName("sysperf", "memory", k),
+				prometheus.BuildFQName("sysperf", "memory", strings.ToLower(k)),
 				fmt.Sprintf("Memory information field %s.", k),
 				nil, nil,
 			),
