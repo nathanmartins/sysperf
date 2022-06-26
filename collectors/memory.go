@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/procfs"
+	"github.com/rs/zerolog/log"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -18,38 +18,10 @@ var (
 	reParens = regexp.MustCompile(`\((.*)\)`)
 )
 
-type MeminfoCollector struct {
-	logger log.Logger
-}
+type MemInfoCollector struct{}
 
-func (m *MeminfoCollector) Describe(descs chan<- *prometheus.Desc) {
-	variableLabels := []string{"a_variable_label"}
-	labels := prometheus.Labels{
-		"label_key": "label_value",
-	}
-
-	descs <- prometheus.NewDesc("meminfo", "a stupid help text", variableLabels, labels)
-}
-
-func (m *MeminfoCollector) Collect(metrics chan<- prometheus.Metric) {
-	logger := log.New(os.Stdout, "memcollector", log.LstdFlags)
-	collector, err := NewMeminfoCollector(*logger)
-	if err != nil {
-		log.Printf("error while creating collector: %s\n", err)
-	}
-
-	go func() {
-		err = collector.Update(metrics)
-		if err != nil {
-			log.Printf("error while updating collector: %s\n", err)
-		}
-	}()
-
-}
-
-func (m *MeminfoCollector) Update(ch chan<- prometheus.Metric) error {
-
-	memInfo, err := GetMemInfo()
+func (c MemInfoCollector) Collect(ch chan<- prometheus.Metric) {
+	memInfo, err := getMemInfo()
 	if err != nil {
 		log.Printf("error while getting meminfo: %s\n", err)
 	}
@@ -71,15 +43,15 @@ func (m *MeminfoCollector) Update(ch chan<- prometheus.Metric) error {
 			metricType, v,
 		)
 	}
-
-	return nil
 }
 
-func NewMeminfoCollector(logger log.Logger) (Collector, error) {
-	return &MeminfoCollector{logger}, nil
+func (c MemInfoCollector) Describe(ch chan<- *prometheus.Desc) {
+	for _, desc := range getDescriptions() {
+		ch <- desc
+	}
 }
 
-func GetMemInfo() (map[string]float64, error) {
+func getMemInfo() (map[string]float64, error) {
 
 	file, err := os.Open(filepath.Join(procfs.DefaultMountPoint, "meminfo"))
 	if err != nil {
@@ -88,6 +60,25 @@ func GetMemInfo() (map[string]float64, error) {
 	defer file.Close()
 
 	return parseMemInfo(file)
+}
+
+func getDescriptions() []*prometheus.Desc {
+	memInfo, err := getMemInfo()
+	if err != nil {
+		log.Fatal().Err(fmt.Errorf("error while getting meminfo: %s\n", err))
+	}
+
+	descriptions := make([]*prometheus.Desc, 0)
+
+	for k, _ := range memInfo {
+		descriptions = append(descriptions, prometheus.NewDesc(
+			prometheus.BuildFQName("sysperf", "memory", strings.ToLower(k)),
+			fmt.Sprintf("Memory information field %s.", k),
+			nil, nil,
+		))
+	}
+
+	return descriptions
 }
 
 func parseMemInfo(r io.Reader) (map[string]float64, error) {
