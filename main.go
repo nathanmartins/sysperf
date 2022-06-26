@@ -9,18 +9,15 @@ import (
 	"net/http"
 )
 
+var MemInfoMetric = collectors.MemInfoCollector{}
+
 func init() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	var memCollector collectors.MeminfoCollector
-	if err := prometheus.Register(&memCollector); err != nil {
-		log.Err(err)
-	} else {
-		log.Info().Msg("memcollector registered.")
-	}
+	prometheus.MustRegister(MemInfoMetric)
 }
 
 func main() {
 	http.Handle("/metrics", promhttp.Handler())
-	log.Info().Msg("Beginning to serve on port :8080")
+	log.Info().Msg("running on port :8080")
 	log.Err(http.ListenAndServe(":8080", nil))
 }
